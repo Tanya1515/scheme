@@ -131,11 +131,16 @@
 )
 
 (define (reply-v2 user-response answer-vctr)
-      (case (random (if (vector-empty? answer-vctr) 2 3)) ;вектор, содержащий предыдущие реплики пользователя проверяется на пустоту: если он пустой, вызывается один из двух вариантов, если нет - один из трех вариантов генерации реплики доктора.
+      (case (random (if (vector-empty? answer-vctr) 3 4)) ;вектор, содержащий предыдущие реплики пользователя проверяется на пустоту: если он пустой, вызывается один из двух вариантов, если нет - один из трех вариантов генерации реплики доктора.
           ((0) (qualifier-answer user-response)) ; 1й способ
           ((1) (hedge)) ; 2й способ
-          ((2)(history-answer answer-vctr)) ;3й способ
-      )
+          ((2)((if (vector-empty? answer-vctr)
+                   (history-answer answer-vctr)
+                   hedge)
+               )) ;3й способ
+          ((3) (if (check-for-keywords user-response)
+                   (find_key_answer user-response)
+                   hedge) )) ;4й способ 
 )
 
 ; генерация ответной реплики по user-response -- реплике от пользователя
@@ -145,6 +150,47 @@
           ((1) (hedge)) ; 2й способ
       )
 )
+
+  (define struct_strat
+ '#(
+  ( ; начало описания 1й стратегии
+    (qualifier-answer) ;название 1й стратегии
+    (
+	  (qualifier-answer_check) ;функция, проверяющая корректность использования данной стратегии
+          (2) ;вес данной стратегии
+          (qualifier-answer user-response) ;тело стратегии
+    )
+  ) ;конец описания 1й стратегии
+
+  (
+   (hedge)
+   (
+	  (hedge_check)
+          (1)
+          (hedge) 
+    )
+  )
+  (
+   (history-answer)
+   (
+	  (history-answer_check answer-vctr)
+          (3)
+          (history-answer answer-vctr) 
+    )
+  )
+  (
+   (find_key_answer)
+   (
+	  (find_key_answer_check user-response)
+          (4)
+          (find_key_answer user-response) 
+    )
+  )
+ )
+)
+  
+;(define (reply-v3 user-response struct_strat answer-vctr)
+; )
 
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
 (define (qualifier-answer user-response)
@@ -291,11 +337,11 @@
   )
 )
 
-(define (change_answer phrase word)
-  (many-replace-v3 '((* word)) phrase)
- )
+(define (change_answer phrase word) ; осуществляет замену звездочки
+    (many-replace-v3 (list(list '* word)) phrase)
+ ) 
 
-(define (find_key_answer phrase)
+(define (find_key_answer phrase) 
   (let ( (word (random-elem-lst (all_phrase_keywords phrase) )) )
    (change_answer (random-elem-lst (all_phrases_response word) ) word)
    )
