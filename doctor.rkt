@@ -131,7 +131,7 @@
 )
 
 (define (reply-v2 user-response answer-vctr)
-      (case (random (if (vector-empty? answer-vctr) 3 4)) ;вектор, содержащий предыдущие реплики пользователя проверяется на пустоту: если он пустой, вызывается один из двух вариантов, если нет - один из трех вариантов генерации реплики доктора.
+      (case (random 4)  
           ((0) (qualifier-answer user-response)) ; 1й способ
           ((1) (hedge)) ; 2й способ
           ((2)((if (vector-empty? answer-vctr)
@@ -151,6 +151,8 @@
       )
 )
 
+
+
   (define struct_strat
  '#(
   ( ; начало описания 1й стратегии
@@ -158,7 +160,7 @@
     (
 	  (qualifier-answer_check) ;функция, проверяющая корректность использования данной стратегии
           (2) ;вес данной стратегии
-          (qualifier-answer user-response) ;тело стратегии
+          ( (lambda ()) (qualifier-answer user-response)) ;функция стратегии
     )
   ) ;конец описания 1й стратегии
 
@@ -173,24 +175,38 @@
   (
    (history-answer)
    (
-	  (history-answer_check answer-vctr)
+	  ( (lambda ()) (history-answer_check answer-vctr))
           (3)
-          (history-answer answer-vctr) 
+          ((lambda ()) (history-answer answer-vctr) )
     )
   )
   (
    (find_key_answer)
    (
-	  (find_key_answer_check user-response)
+	  ( (lambda ()) (find_key_answer_check user-response))
           (4)
-          (find_key_answer user-response) 
+          ( (lambda ()) (find_key_answer user-response) )
     )
   )
  )
 )
+
+(define (choose_strat struct_strat)
+  (let ((random_number (random 10) ))
+    (cond ((and (>= random_number 0) (<= random_number 3))
+           (all_inf_by_key (cadddr (list_key struct_strat)) struct_strat))
+          ((and (>= random_number 4) (<= random_number 6))
+           (all_inf_by_key (caddr (list_key struct_strat)) struct_strat))
+          ((or (= random_number 7) (= random_number 8))
+           (all_inf_by_key (car (list_key struct_strat)) struct_strat))
+          ((= random_number 9)
+           (all_inf_by_key (cadr (list_key struct_strat)) struct_strat))
+     )
+    )
+ )
   
-;(define (reply-v3 user-response struct_strat answer-vctr)
-; )
+(define (reply-v3 user-response struct_strat answer-vctr)
+ )
 
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
 (define (qualifier-answer user-response)
@@ -293,17 +309,17 @@
   (append `(earlier you said that) (vector-ref answer-vctr (random (vector-length answer-vctr))))
   )
 
-(define list_keywords ; составляем список всех ключевых слов
-  ( let loop ((res '()) (it (- (vector-length keywords_structure) 1)))
+(define (list_key vctr) ; составляем список всех ключевых слов
+  ( let loop ((res '()) (it (- (vector-length vctr) 1)))
      (if (< it 0)
          res
-         (loop (append (car (vector-ref keywords_structure it)) res) (- it 1))
+         (loop (append (car (vector-ref vctr it)) res) (- it 1))
      )
   )
 )
 
 (define (check-for-keywords phrase)
-  (ormap (lambda (x) (member x list_keywords)) phrase) ; проходимся по фразе в поисках первого ключа, если он есть 
+  (ormap (lambda (x) (member x (list_key keywords_structure))) phrase) ; проходимся по фразе в поисках первого ключа, если он есть 
   )
 
 (define (member? x list) ;принадлежит ли слово списку
@@ -314,7 +330,7 @@
 
 (define (all_phrase_keywords phrase)
   (foldl (lambda (x res)
-           (if (member? x list_keywords)
+           (if (member? x (list_key keywords_structure))
                (cons x res)
                res)
          ) '() phrase
@@ -325,12 +341,12 @@
   (list-ref lst (random (length lst)))
  )
 
-(define (all_phrases_response word) ;составляет список фраз, относящихся к конкретному ключевому слову 
-  ( let loop ((res '()) (it (- (vector-length keywords_structure) 1)))
+(define (all_inf_by_key word struct) ;составляет список фраз, относящихся к конкретному ключевому слову 
+  ( let loop ((res '()) (it (- (vector-length struct) 1)))
      (if (< it 0)
          res
-         (if (member? word (car (vector-ref keywords_structure it)))
-             (loop (append (car (cdr (vector-ref keywords_structure it))) res) (- it 1))
+         (if (member? word (car (vector-ref struct it)))
+             (loop (append (car (cdr (vector-ref struct it))) res) (- it 1))
              (loop res (- it 1))
           )
      )
@@ -343,6 +359,6 @@
 
 (define (find_key_answer phrase) 
   (let ( (word (random-elem-lst (all_phrase_keywords phrase) )) )
-   (change_answer (random-elem-lst (all_phrases_response word) ) word)
+   (change_answer (random-elem-lst (all_inf_by_key word keywords_structure) ) word)
    )
 )
