@@ -59,6 +59,12 @@
  )
 )
 
+(define struct_strat 
+  (list (list  (lambda (x y) hedge_check) 1 (lambda(x y)(hedge)))
+        (list  (lambda (x y) qualifier-answer_check) 2 (lambda(x y)(qualifier-answer x)))
+        (list  (lambda (x y) (history-answer_check y)) 3 (lambda (x y) (history-answer y)))
+        (list  (lambda (x y) (find_key_answer_check x)) 4 (lambda (x y) (find_key_answer x)))) 
+  )
 
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
@@ -152,90 +158,51 @@
 )
 
 
-
-  (define struct_strat
- '#(
-  ( ; начало описания 1й стратегии
-    (qualifier-answer) ;название 1й стратегии
-    (
-	  ((lambda () qualifier-answer_check)) ;функция, проверяющая корректность использования данной стратегии
-          (2) ;вес данной стратегии
-          ((lambda () (qualifier-answer user-response))) ;функция стратегии
-    )
-  ) ;конец описания 1й стратегии
-
-  (
-   (hedge)
-   (
-	  ((lambda () hedge_check))
-          (1)
-          ((lambda () (hedge))) 
-    )
-  )
-  (
-   (history-answer)
-   (
-	  ((lambda () (history-answer_check answer-vctr)))
-          (3)
-          ((lambda () (history-answer answer-vctr)))
-    )
-  )
-  (
-   (find_key_answer)
-   (
-	  ((lambda () (find_key_answer_check user-response)))
-          (4)
-          (( lambda () (find_key_answer user-response)) )
-    )
-  )
- )
-)
-
-(define qualifier-answer_check
+(define qualifier-answer_check ;проверка корректности использования функции qualifier-answer
   (if 1 #t
       #f)
  )
 
-(define hedge_check
+(define hedge_check ;проверка корректности использования функции hedge
   (if 1 #t
       #f)
  )
 
-(define (history-answer_check answers)
+(define (history-answer_check answers) ;проверка корректности использования функции history-answer
   (if (vector-empty? answers) #f
       #t
    )
  )
 
-(define (find_key_answer_check phrase)
+(define (find_key_answer_check phrase) ;проверка корректности использования функции find_key_answer
   (if (check-for-keywords phrase) #t
       #f
  )
 )
 
-(define (weight vctr)
-  (let loop ((it (- (vector-length vctr) 1)) (res '())) 
-    (if (< it 0) res
-        (loop (- it 1) (append (cadr (list-ref (cdr (vector-ref struct_strat it)) 0)) res))
+(define (weight lst) ;возвращает список весов всех стратегий (номер стратегии = номер веса в списке)
+  (let loop ((it (- (length lst) 1)) (res '())) 
+    (if (< it 0) res 
+        (loop (- it 1) (cons (cadr (list-ref lst it)) res))
      )
    )
  ) 
 
 
-(define (choose_strat struct_strat)
+(define (choose_strat struct_strat) ;возвращается номер вызываемой стратегии, который совпадает с номером ее веса в списке весов 
   (let loop ((random_number (random (foldl + 0 (weight struct_strat)))) (lst (weight struct_strat)) (high_border (car (weight struct_strat))) (low_border 0) (it 0))
     (cond ((null? lst) it)
           ((and (>= random_number low_border) (< random_number high_border )) it)
          (else (loop random_number (cdr lst) (+ (cadr lst) high_border) high_border (+ it 1)))
     )
  ) 
-) 
-  
-(define (reply-v3 user-response struct_strat answer-vctr)
-  (let loop ((number_of_strat (choose_strat struct_strat)))
-  (if (car (list-ref (cdr (vector-ref struct_strat number_of_strat)) 0))
-      (caddr (list-ref (cdr (vector-ref struct_strat number_of_strat)) 0))
-      (loop (choose_strat struct_strat))
+)
+
+(define (reply-v3 user-response struct answer-vctr)
+  (let loop ((number_of_strat (choose_strat struct)))
+  (if ((car (list-ref struct number_of_strat)) user-response answer-vctr)
+      ((caddr (list-ref struct number_of_strat)) user-response answer-vctr) 
+      (loop (choose_strat struct))
    )
   )
 )
