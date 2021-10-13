@@ -122,7 +122,7 @@
             ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
              (print '(see you next week)))
-            (else (print (reply-v2 user-response answer-vctr)) ; иначе Доктор генерирует ответ, печатает его 
+            (else (print (reply-v3 user-response struct_strat answer-vctr)) ; иначе Доктор генерирует ответ, печатает его 
                   (loop (vector-append (vector user-response) answer-vctr)); Доктор продолжает цикл
              )  
       )
@@ -158,55 +158,87 @@
   ( ; начало описания 1й стратегии
     (qualifier-answer) ;название 1й стратегии
     (
-	  (qualifier-answer_check) ;функция, проверяющая корректность использования данной стратегии
+	  ((lambda () qualifier-answer_check)) ;функция, проверяющая корректность использования данной стратегии
           (2) ;вес данной стратегии
-          ( (lambda ()) (qualifier-answer user-response)) ;функция стратегии
+          ((lambda () (qualifier-answer user-response))) ;функция стратегии
     )
   ) ;конец описания 1й стратегии
 
   (
    (hedge)
    (
-	  (hedge_check)
+	  ((lambda () hedge_check))
           (1)
-          (hedge) 
+          ((lambda () (hedge))) 
     )
   )
   (
    (history-answer)
    (
-	  ( (lambda ()) (history-answer_check answer-vctr))
+	  ((lambda () (history-answer_check answer-vctr)))
           (3)
-          ((lambda ()) (history-answer answer-vctr) )
+          ((lambda () (history-answer answer-vctr)))
     )
   )
   (
    (find_key_answer)
    (
-	  ( (lambda ()) (find_key_answer_check user-response))
+	  ((lambda () (find_key_answer_check user-response)))
           (4)
-          ( (lambda ()) (find_key_answer user-response) )
+          (( lambda () (find_key_answer user-response)) )
     )
   )
  )
 )
 
-(define (choose_strat struct_strat)
-  (let ((random_number (random 10) ))
-    (cond ((and (>= random_number 0) (<= random_number 3))
-           (all_inf_by_key (cadddr (list_key struct_strat)) struct_strat))
-          ((and (>= random_number 4) (<= random_number 6))
-           (all_inf_by_key (caddr (list_key struct_strat)) struct_strat))
-          ((or (= random_number 7) (= random_number 8))
-           (all_inf_by_key (car (list_key struct_strat)) struct_strat))
-          ((= random_number 9)
-           (all_inf_by_key (cadr (list_key struct_strat)) struct_strat))
-     )
-    )
+(define qualifier-answer_check
+  (if 1 #t
+      #f)
  )
+
+(define hedge_check
+  (if 1 #t
+      #f)
+ )
+
+(define (history-answer_check answers)
+  (if (vector-empty? answers) #f
+      #t
+   )
+ )
+
+(define (find_key_answer_check phrase)
+  (if (check-for-keywords phrase) #t
+      #f
+ )
+)
+
+(define (weight vctr)
+  (let loop ((it (- (vector-length vctr) 1)) (res '())) 
+    (if (< it 0) res
+        (loop (- it 1) (append (cadr (list-ref (cdr (vector-ref struct_strat it)) 0)) res))
+     )
+   )
+ ) 
+
+
+(define (choose_strat struct_strat)
+  (let loop ((random_number (random (foldl + 0 (weight struct_strat)))) (lst (weight struct_strat)) (high_border (car (weight struct_strat))) (low_border 0) (it 0))
+    (cond ((null? lst) it)
+          ((and (>= random_number low_border) (< random_number high_border )) it)
+         (else (loop random_number (cdr lst) (+ (cadr lst) high_border) high_border (+ it 1)))
+    )
+ ) 
+) 
   
 (define (reply-v3 user-response struct_strat answer-vctr)
- )
+  (let loop ((number_of_strat (choose_strat struct_strat)))
+  (if (car (list-ref (cdr (vector-ref struct_strat number_of_strat)) 0))
+      (caddr (list-ref (cdr (vector-ref struct_strat number_of_strat)) 0))
+      (loop (choose_strat struct_strat))
+   )
+  )
+)
 
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
 (define (qualifier-answer user-response)
@@ -306,7 +338,7 @@
 ;3й способ генерации ответной реплики: earlier you said that + случайны выбор реплики, произносимой клиентом ранее
 ;по номеру элемента вектора реплик (определяется рандомно при помощи функции random, куда передается длинна вектора) выбирается реплика вдобавок к фразе earlier you said that
 (define (history-answer answer-vctr)
-  (append `(earlier you said that) (vector-ref answer-vctr (random (vector-length answer-vctr))))
+  (append `(earlier you said that) (vector-ref answer-vctr (random (vector-length answer-vctr)))) 
   )
 
 (define (list_key vctr) ; составляем список всех ключевых слов
