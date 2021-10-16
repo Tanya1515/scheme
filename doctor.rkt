@@ -59,11 +59,11 @@
  )
 )
 
-(define struct_strat 
-  (list (list  (lambda (x y) hedge_check) 1 (lambda(x y)(hedge)))
-        (list  (lambda (x y) qualifier-answer_check) 2 (lambda(x y)(qualifier-answer x)))
-        (list  (lambda (x y) (history-answer_check y)) 3 (lambda (x y) (history-answer y)))
-        (list  (lambda (x y) (find_key_answer_check x)) 4 (lambda (x y) (find_key_answer x)))) 
+(define struct_strat ;структура всех стратегий генерации ответа 
+  (list (list  (lambda (x y) #t) 1 (lambda(x y)(hedge)))
+        (list  (lambda (x y) #t) 2 (lambda(x y)(qualifier-answer x)))
+        (list  (lambda (x y) (not(vector-empty? y))) 3 (lambda (x y) (history-answer y)))
+        (list  (lambda (x y) (check-for-keywords x)) 4 (lambda (x y) (find_key_answer x)))) 
   )
 
 ; основная функция, запускающая "Доктора"
@@ -74,7 +74,7 @@
   (doctor-driver-loop-v2 name)
 )
 
-(define (ask-patient-name)
+(define (ask-patient-name) ;возвращает имя пациента  
  (begin
   (println '(next!))
   (println '(who are you?))
@@ -128,7 +128,7 @@
             ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
              (print '(see you next week)))
-            (else (print (reply-v3 user-response struct_strat answer-vctr)) ; иначе Доктор генерирует ответ, печатает его 
+            (else (print (reply-v2 user-response struct_strat answer-vctr)) ; иначе Доктор генерирует ответ, печатает его 
                   (loop (vector-append (vector user-response) answer-vctr)); Доктор продолжает цикл
              )  
       )
@@ -136,7 +136,7 @@
   )
 )
 
-(define (reply-v2 user-response answer-vctr)
+(define (reply-v3 user-response answer-vctr)
       (case (random 4)  
           ((0) (qualifier-answer user-response)) ; 1й способ
           ((1) (hedge)) ; 2й способ
@@ -158,28 +158,6 @@
 )
 
 
-(define qualifier-answer_check ;проверка корректности использования функции qualifier-answer
-  (if 1 #t
-      #f)
- )
-
-(define hedge_check ;проверка корректности использования функции hedge
-  (if 1 #t
-      #f)
- )
-
-(define (history-answer_check answers) ;проверка корректности использования функции history-answer
-  (if (vector-empty? answers) #f
-      #t
-   )
- )
-
-(define (find_key_answer_check phrase) ;проверка корректности использования функции find_key_answer
-  (if (check-for-keywords phrase) #t
-      #f
- )
-)
-
 (define (weight lst) ;возвращает список весов всех стратегий (номер стратегии = номер веса в списке)
   (let loop ((it (- (length lst) 1)) (res '())) 
     (if (< it 0) res 
@@ -190,21 +168,18 @@
 
 
 (define (choose_strat struct_strat) ;возвращается номер вызываемой стратегии, который совпадает с номером ее веса в списке весов 
-  (let loop ((random_number (random (foldl + 0 (weight struct_strat)))) (lst (weight struct_strat)) (high_border (car (weight struct_strat))) (low_border 0) (it 0))
-    (cond ((null? lst) it)
-          ((and (>= random_number low_border) (< random_number high_border )) it)
-         (else (loop random_number (cdr lst) (+ (cadr lst) high_border) high_border (+ it 1)))
+  (let loop ((lst struct_strat) (random_number (random (foldl + 0 (weight struct_strat))) ))
+    (cond ((null? lst) #f)
+          ((<= random_number (list-ref (car lst) 1)) (car lst))
+         (else (loop  (cdr lst) (- random_number (list-ref (car lst) 1)))) 
     )
  ) 
-)
+) 
 
-(define (reply-v3 user-response struct answer-vctr)
-  (let loop ((number_of_strat (choose_strat struct)))
-  (if ((car (list-ref struct number_of_strat)) user-response answer-vctr)
-      ((caddr (list-ref struct number_of_strat)) user-response answer-vctr) 
-      (loop (choose_strat struct))
+(define (reply-v2 user-response struct answer-vctr) ;вызывается функция-чеккер, если она возвращает true, вызываем саму функцию
+  (let ((cur_strat (choose_strat (filter (lambda (x) ((list-ref x 0) user-response answer-vctr)) struct) ) ))
+    ((caddr cur_strat) user-response answer-vctr)
    )
-  )
 )
 
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
@@ -321,18 +296,10 @@
   (ormap (lambda (x) (member x (list_key keywords_structure))) phrase) ; проходимся по фразе в поисках первого ключа, если он есть 
   )
 
-(define (member? x list) ;принадлежит ли слово списку
-     (if (null? list) #f                           
-         (if (equal? x (car list)) #t              
-              (member? x (cdr list)))))
-
-
 (define (all_phrase_keywords phrase)
-  (foldl (lambda (x res)
-           (if (member? x (list_key keywords_structure))
-               (cons x res)
-               res)
-         ) '() phrase
+  (filter (lambda (x)
+           (member x (list_key keywords_structure))
+         ) phrase
      )
  )
 
@@ -344,7 +311,7 @@
   ( let loop ((res '()) (it (- (vector-length struct) 1)))
      (if (< it 0)
          res
-         (if (member? word (car (vector-ref struct it)))
+         (if (member word (car (vector-ref struct it)))
              (loop (append (car (cdr (vector-ref struct it))) res) (- it 1))
              (loop res (- it 1))
           )
