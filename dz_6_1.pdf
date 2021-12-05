@@ -1,0 +1,51 @@
+#lang scheme/base
+(require scheme/mpair)
+
+;конструктор очереди (make-queue) +
+;селектор очереди (front-queue q)
+;мутаторы очереди:
+;   (insert-queue! q e)
+;   (delete-queue! q) +
+;чеккеры очереди:
+;   (queue? q) +
+;   (empty-queue? q) +
+
+(define (make-queue) (mcons 'queue (mcons '() '())))
+
+(define (queue? q) (and (mpair? q) (eq? 'queue (mcar q))))
+
+(define (empty-queue? q) (and (queue? q) (null? (mcar (mcdr q)))))
+
+
+(define (delete-queue! q)
+   (if (and (queue? q) (not (empty-queue? q)))
+        (let loop ((curr q) (next (mcdr q)))
+            (if (null? (mcdr next))
+                (set-mcdr! curr '())
+                (loop (mcdr curr) (mcdr next))
+            )
+        )
+        q
+    )
+)
+
+(define (front-queue q)
+    (if (and (queue? q) (not (empty-queue? q)))
+        (let loop ((curr (mcdr q)))
+            (if (null? (mcdr curr))
+                (mcar curr)
+                (loop (mcdr curr))
+            )
+        )
+        "empty queue"
+    )
+)
+
+(define (insert-queue! q e)
+    (if (queue? q)
+        (set-mcdr! q (mcons e (mcdr q)))
+        q
+    )
+)
+
+
