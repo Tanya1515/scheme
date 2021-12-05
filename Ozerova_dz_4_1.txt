@@ -1,0 +1,13 @@
+#lang racket
+
+(define (task-03-2020 lst)
+  (let func ( (lst_res '()) (end_lst lst) )
+    (if (null? end_lst)
+           (sqrt (foldr + 0 (map sqr lst_res)))
+          ( func (cons  (expt (foldr * 1 (car end_lst)) (/ 1 (length (car end_lst)) )) lst_res) (cdr end_lst) )
+    ) 
+  )   
+ ) 
+
+(task-03-2020 (list (list 2 4 1) (list 2 2) (list 1 1 1 1 1 1 1)))
+

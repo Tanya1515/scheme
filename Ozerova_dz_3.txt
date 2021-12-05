@@ -1,0 +1,53 @@
+#lang racket
+;----------------------------------------------------------------------------------------------
+(define (list-fib-squares-a n)
+  (let fiblst ((i 1) (a 0) (b 1) (lst '()) )
+    (if (and (integer? n) (<= i n)) 
+        (fiblst (+ i 1) b (+ a b) (cons b lst) )
+        (reverse (map (lambda (x) (* x x))
+                      lst
+                 )
+        )
+    )
+  )
+)
+;----------------------------------------------------------------------------------------------
+(define (list-fib-squares-b n)
+  (let fiblst ((i 1) (a 0) (b 1) (lst '()) )
+    (if (and (integer? n) (<= i n)) 
+        (fiblst (+ i 1) b (+ a b) (cons b lst) )
+         (foldl (lambda (x y) (cons (* x x) y))
+                      '()
+                      lst
+                 )
+    )
+  )
+)
+;----------------------------------------------------------------------------------------------
+
+(define
+  (mult lst)
+  (foldl * 1 lst)
+  )
+
+(define
+  (add lst)
+  (foldl + 0 lst)
+  )
+
+(define (process lst)
+  (let compare_func ( (elem_comp (mult (car lst))) (end_lst (cdr lst)) (result '()))
+    (if (null? end_lst)
+      (reverse result)
+      (if (< elem_comp (add (car end_lst) ) ) 
+          (compare_func elem_comp (cdr end_lst) (cons (car end_lst) result) )
+          (compare_func  elem_comp (cdr end_lst) result)
+        )
+      )
+    )
+ )
+;----------------------------------------------------------------------------------------------
+
+(process '((5) (1 2) () (3 4) (2 3) (2 3 4)))
+(process '((5) (1 2) ))
+(list-fib-squares-a 3)

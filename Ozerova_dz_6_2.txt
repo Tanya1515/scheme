@@ -1,0 +1,57 @@
+#lang racket
+
+(define (div_sum n) 
+    (let loop ((i 1) (sum 0))
+      (cond ((= i (+ 1 (quotient n 2))) (+ sum n))
+            ((= 0 (remainder n i)) (loop (+ i 1) (+ sum i)))
+            (else (loop (+ i 1) sum))
+      )
+    )
+  )
+
+(define (even-abundant n) 
+
+  (let loop ((cur_num 12) ; самое первое избыточное четно число -- 12
+             (i 1))
+    
+    (if (> (div_sum cur_num) (* 2 cur_num))
+      (if (= i n)
+        cur_num ; нашли энное число
+        (loop 
+          (+ 2 cur_num)
+          (add1 i)
+        )
+      )
+      (loop 
+        (+ 2 cur_num)
+        i
+      )
+    )
+  )            
+)
+
+ 
+(define ht (make-hash (list (cons 1 12))))
+
+(define (memo-even-abundant n)
+  (let ((lkup (hash-ref ht n #f)))
+    (if lkup lkup ;если нашли элемент, то возвращаем его 
+        (let main-loop ((amount (hash-count ht))
+                        (cur-number (+ (hash-ref ht (hash-count ht) #f) 2)))
+          (cond ((= amount n) (begin (hash-set! ht n (sub1 cur-number)) (sub1 cur-number))) ;записываем найденное по номеру число в таблицу и возвращаем его
+                ((> (div_sum cur-number) (* 2 cur-number)) ;если число удовлетворяет требованию четных избыточных чисел, то записываем в таблицу
+                      (hash-set! ht (add1 amount) cur-number)
+                      (main-loop (add1 amount) (+ cur-number 2)))
+                (else (main-loop amount (+ cur-number 2)))
+           )
+        )
+    )
+  )
+)
+
+;мемоизированная версия по сравнению с обычной дает выигрыш, в случае если таблица уже была заполнена (после предыдущего вызова), поскольку номер элемента как и сам элемент
+; могут присутствовать в таблице (если он меньше номера элемента предыдущего вызова), в любом случае не придется вычислять элементы из предыдущего вызова, поскольку они
+;они уже присутствуют в таблице 
+
+(memo-even-abundant 10)
+(memo-even-abundant 2)

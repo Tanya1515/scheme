@@ -1,0 +1,20 @@
+(define (tree-left tree) (vector-ref tree 1))
+
+(define (tree-right tree) (vector-ref tree 2))
+
+(define (empty-tree? tree)
+  (equal? tree #())
+  )
+
+(define (task-4-2021 tree h)
+  (if (and (empty-tree? tree) (= h 0) )
+      #t
+      (if (and (not (empty-tree? tree))  (= h 1) (empty-tree? (tree-right tree)) (empty-tree? (tree-left  tree)))
+          #t
+          (if ( and (not (empty-tree? tree)) (task-4-2021 (tree-left tree) (- h 1)) (task-4-2021 (tree-right tree) (- h 2)) )
+              #t
+              #f
+           )
+       )
+   )
+)
