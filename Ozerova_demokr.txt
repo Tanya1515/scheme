@@ -1,0 +1,90 @@
+#lang racket
+
+(define (taskI lst)
+  (if (null? lst) '()
+      (caddr (foldl (lambda (elem start-list) (let ((min (car start-list)) (i (cadr start-list)) (result (caddr start-list)))
+                                      (cond ((< elem min) (list elem (add1 i) (list i)))
+                                            ((= elem min) (list elem (add1 i) (cons i result)))
+                                            (else (list min (add1 i) result))))) (list (car lst) 0 '()) lst)))
+ )
+
+(taskI (list -1 0 1 -1 0 1 -1))
+
+
+(define (taskII t s)
+  (if (and (not (vector? t) ) (= t 1 )) s
+      (if (and  (not (vector? t)) (= t 0) ) 0
+          (if (and (= (vector-length t) 1 ) (= (vector-ref t 0) 0) ) 0
+              ( if (and (= (vector-length t) 1 ) (= (vector-ref t 0) 1)  ) s
+                  ( + (taskII (vector-ref t 0) (/ s 4) ) (taskII (vector-ref t 1) (/ s 4) ) (taskII (vector-ref t 2) (/ s 4) ) (taskII (vector-ref t 3)  (/ s 4) ) )
+               )
+           )
+       )
+    )
+)
+
+
+(taskII #(1 0 0 #(1 1 1 0)) 16) ; => 7
+(taskII #(0 #(1 0 1 0) #(1 #(1 0 1 0) 0 1) 0) 64) ; => 18
+(taskII #(1) 44) ; => 44
+(taskII #(0) 44) ; => 0
+
+
+(define (length_lst lst)
+  (let f ( (res 0 ) (end_lst lst) )
+    (if (null? end_lst) res
+        (f (+ res 1) (cdr end_lst))
+     )
+   )
+ )
+
+(define (max_elem elem_1 elem_2)
+  (if (> elem_1 elem_2) elem_1
+      elem_2
+    )
+ )
+
+(define (max_len lst)
+    (let ((len_lst (map length_lst lst)))
+    (foldl max_elem -inf.0 len_lst)
+  )
+ )
+
+(define (taskIII lst)
+
+  (let func ( (res '()) (end_lst lst) (len ( max_len lst) ) )
+    (if (null? end_lst ) (reverse res)
+        (if (= len (length (car end_lst) ) )
+         (func (cons (map (lambda (x) (+ x 1)) (car end_lst)) res) (cdr end_lst) len )
+         (func (cons (car end_lst) res ) (cdr end_lst) len )
+        )
+    )
+   )
+ )
+
+(taskIII '((1) (2 3) (4 5) (6))) ;=> ((1) (3 4) (5 6) (6))
+
+
+(define (taskIV-сс t s cc)
+  (if (and (not (vector? t) ) (= t 1 )) (cc s)
+      (if (and  (not (vector? t)) (= t 0) ) (cc 0)
+          (if (and (= (vector-length t) 1 ) (= (vector-ref t 0) 0) ) (cc 0)
+              ( if (and (= (vector-length t) 1 ) (= (vector-ref t 0) 1)  ) (cc s)
+                  ( + (taskIV-сс (vector-ref t 0) (/ s 4) (lambda (x) (cc x)) ) (taskIV-сс (vector-ref t 1) (/ s 4) (lambda (x) (cc  x)) ) (taskIV-сс (vector-ref t 2) (/ s 4) (lambda (x) (cc x))) (taskIV-сс (vector-ref t 3) (/ s 4) (lambda (x) (cc x )) ) )
+               )
+           )
+       )
+    )
+ )
+
+(taskIV-сс #(1) 44 (lambda (x) x))
+(taskIV-сс #(1 0 0 #(1 1 1 0)) 16 (lambda (x) x))
+(taskIV-сс #(0) 44 (lambda (x) x))
+(taskIV-сс #(0 #(1 0 1 0) #(1 #(1 0 1 0) 0 1) 0) 64 (lambda (x) x))
+
+(define (taskV f1 . tail)
+  (foldl (lambda (x y) (lambda (z) (y (x z)) ) ) f1 tail )
+ )
+
+( (taskV (lambda (x) (* x 10)) (lambda (x) (+ 2 x)) ) 1)
+
