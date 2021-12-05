@@ -8,57 +8,58 @@
 (require racket/vector)
 ; подключаем функции для работы со строками
 (require scheme/string)
+(require racket/format)
 
 
 (define keywords_structure
  '#(
   ( ; начало данных 1й группы
-    (depressed suicide exams university) ; список ключевых слов 1й группы
+    ("depressed" "suicide" "exams" "university") ; список ключевых слов 1й группы
     ( ; список шаблонов для составления ответных реплик 1й группы 
-	  (when you feel depressed, go out for ice cream)
-          (depression is a disease that can be treated)
-          (i will help you to overcome depression)
-          (a lot of people suffer from depression, you are not alone)
+	  ("when you feel depressed, go out for ice cream")
+          ("depression is a disease that can be treated")
+          ("i will help you to overcome depression")
+          ("a lot of people suffer from depression, you are not alone")
     )
   ) ; завершение данных 1й группы
   
   ( ; начало данных 2й группы 
-    (mother father parents brother sister uncle ant grandma grandpa)
+    ("mother" "father" "parents" "brother" "sister" "uncle" "ant" "grandma" "grandpa")
         (
-	  (tell me more about your * , i want to know all about your *)
-          (why do you feel that way about your * ?)
-          (your relationships with * are very important for diagnosis, so continue please)
-          (how do you feel while talking about you problems with *?)
+	  ("tell me more about your" * ", i want to know all about your" *)
+          ("why do you feel that way about your" * "?")
+          ("your relationships with" * "are very important for diagnosis, so continue please")
+          ("how do you feel while talking about you problems with" * "?")
 	)
   ) ; завершение данных 2й группы
   
   ( ; начало данных 3й группы 
-    (university scheme lections seminars studies)
+    ("university" "scheme" "lections" "seminars" "studies")
 	(
-	  (your education is important)
-	  (how many time do you spend for learning ?)
-          (you do not have to spend all time for studying, you should have a relax day once a week)
-          (i suggest to make a timetable of your work in order not to overextend)
+	  ("your education is important")
+	  ("how many time do you spend for learning ?")
+          ("you do not have to spend all time for studying, you should have a relax day once a week")
+          ("i suggest to make a timetable of your work in order not to overextend")
 	)
   ) ; завершение данных 3й группы
 
    ( ; начало данных 4й группы 
-    (sleep insomnia drowsiness tiredness)
+    ("sleep" "insomnia" "drowsiness" "tiredness")
 	(
-	  (do you sleep good?)
-	  (how long do you sleep?)
-          (at what time do you go to bed?)
-          (what do you do before going to bed?)
+	  ("do you sleep good?")
+	  ("how long do you sleep?")
+          ("at what time do you go to bed?")
+          ("what do you do before going to bed?")
 	)
   ) ; завершение данных 4й группы
 
     ( ; начало данных 5й группы 
-    (scared horror stress consternation)
+    ("scared" "horror" "stress" "consternation")
 	(
-	  (do you have any phobias?)
-	  (what were you most afraid of as a child?)
-          (it is ok to be scared of something, we need to understand the reason of the horror, so please go on)
-          (many people suffer from stress every day, do not worry)
+	  ("do you have any phobias?")
+	  ("what were you most afraid of as a child?")
+          ("it is ok to be scared of something, we need to understand the reason of the horror, so please go on")
+          ("many people suffer from stress every day, do not worry")
 	)
   ) ; завершение данных 5й группы
  )
@@ -78,19 +79,23 @@
  (filter non-empty-string? (string-split str #px"\\s*\\b\\s*"))
  )
 
+(define (list_to_string lst)
+  (string-join (map ~a lst) " ")
+  )
+
 
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
 (define (visit-doctor name)
   (printf "Hello, ~a!\n" name)
-  (print '(what seems to be the trouble?))
-  (doctor-driver-loop-v2 name)
+  (printf "what seems to be the trouble?\n")
+  (doctor-driver-loop name)
 )
 
 (define (ask-patient-name) ;возвращает имя пациента  
  (begin
-  (println '(next!))
-  (println '(who are you?))
+  (printf "next!\n")
+  (printf "who are you?\n")
   (print '**)
   (car (strint_to_list (read-line)))
  ) 
@@ -98,15 +103,15 @@
 
 (define (visit-doctor-v2 stop_word amount_of_patients) ;передается стоп слово и количество обслуживаемых пациентов
   (if (<= amount_of_patients 0)
-      (print '(time to go home)) ;если количество пациентов <= 0, то доктор уходит домой
+      (printf "time to go home\n") ;если количество пациентов <= 0, то доктор уходит домой
   (let ask ((patient_name (ask-patient-name)) (stop stop_word) (clients amount_of_patients)) ;считывается имя пациента   
     (cond
-      ((equal? patient_name stop) ;если имя пациента и стоп слово не совпадают, то начинаем сеанс с доктором, иначе время идти домой 
-        (print '(time to go home)))
+      ((equal? patient_name (~v stop)) ;если имя пациента и стоп слово не совпадают, то начинаем сеанс с доктором, иначе время идти домой 
+        (printf "time to go home\n"))
         (else
            (visit-doctor patient_name) 
            (if (= clients 1) 
-               (print '(time to go home))
+               (printf "time to go home")
                (ask (ask-patient-name) stop_word (- clients 1))) ;считываем имя следующего пациента и уменьшаем количество оставшихся для обслуживания пациентов на 1
          )
         )
@@ -122,10 +127,10 @@
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
     (let ((user-response (strint_to_list (read-line))))
       (cond
-            ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
+            ((equal?  (list (car user-response)) '("goodbye")) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
-             (print '(see you next week)))
-            (else (print (reply user-response)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
+             (printf "see you next week\n"))
+            (else (print (list_to_string (reply user-response))) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
                   (doctor-driver-loop name)
              )
        )
@@ -138,10 +143,10 @@
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
     (let ((user-response (strint_to_list (read-line))))
       (cond
-            ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
+            ((equal? (list (car user-response)) '("goodbye")) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
-             (print '(see you next week)))
-            (else (print (reply-v2 user-response struct_strat answer-vctr)) ; иначе Доктор генерирует ответ, печатает его 
+             (printf "see you next week\n"))
+            (else (print (list_to_string (reply-v2 user-response struct_strat answer-vctr))) ; иначе Доктор генерирует ответ, печатает его 
                   (loop (vector-append (vector user-response) answer-vctr)); Доктор продолжает цикл
              )  
       )
@@ -197,13 +202,13 @@
 
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
 (define (qualifier-answer user-response)
-   (append (pick-random-vector '#((you seem to think that)
-                                       (you feel that)
-                                       (why do you believe that)
-                                       (why do you say that)
-                                       (what do you feel when)
-                                       (are you scared when)
-                                       (what are you going to do in situation when))
+   (append (pick-random-vector '#(("you seem to think that")
+                                       ("you feel that")
+                                       ("why do you believe that")
+                                       ("why do you say that")
+                                       ("what do you feel when")
+                                       ("are you scared when")
+                                       ("what are you going to do in situation when"))
                 )
                 (change-person user-response)
         )
@@ -216,24 +221,24 @@
 
 ; замена лица во фразе
 (define (change-person phrase)
-        (many-replace-v3 '((am are)
-                        (are am)
-                        (i you)
-                        (me you)
-                        (mine yours)
-                        (my your)
-                        (myself yourself)
-                        (you i)
-                        (your my)
-                        (yours mine)
-                                                (yourself myself)
-                                                (we you)
-                                                (us you)
-                                                (our your)
-                                                (ours yours)
-                                                (ourselves yourselves)
-                                                (yourselves ourselves)
-                                                (shall will))
+        (many-replace-v3 '(("am" "are")
+                        ("are" "am")
+                        ("i" "you")
+                        ("me" "you")
+                        ("mine" "yours")
+                        ("my" "your")
+                        ("myself" "yourself")
+                        ("you" "i")
+                        ("your" "my")
+                        ("yours" "mine")
+                                                ("yourself" "myself")
+                                                ("we" "you")
+                                                ("us" "you")
+                                                ("our" "your")
+                                                ("ours" "yours")
+                                                ("ourselves" "yourselves")
+                                                ("yourselves" "ourselves")
+                                                ("shall" "will"))
                       phrase)
  )
 
@@ -280,20 +285,20 @@
 
 ; 2й способ генерации ответной реплики -- случайный выбор одной из заготовленных фраз, не связанных с репликой пользователя
 (define (hedge)
-       (pick-random-vector '#((please go on)
-                              (many people have the same sorts of feelings)
-                              (many of my patients have told me the same thing)
-                              (please continue)
-                              (please tell me more details about yor feelings at that moment)
-                              (it looks like you are scared. relax, just be yourself and plaese continue)
-                              (it is normal to feel this way))
+       (pick-random-vector '#(("please go on")
+                              ("many people have the same sorts of feelings")
+                              ("many of my patients have told me the same thing")
+                              ("please continue")
+                              ("please tell me more details about yor feelings at that moment")
+                              ("it looks like you are scared. relax, just be yourself and plaese continue")
+                              ("it is normal to feel this way"))
          )
 )
 
 ;3й способ генерации ответной реплики: earlier you said that + случайны выбор реплики, произносимой клиентом ранее
 ;по номеру элемента вектора реплик (определяется рандомно при помощи функции random, куда передается длинна вектора) выбирается реплика вдобавок к фразе earlier you said that
 (define (history-answer answer-vctr)
-  (append `(earlier you said that) (vector-ref answer-vctr (random (vector-length answer-vctr)))) 
+  (append `("earlier you said that") (vector-ref answer-vctr (random (vector-length answer-vctr)))) 
   )
 
 (define (list_key vctr) ; составляем список всех ключевых слов
