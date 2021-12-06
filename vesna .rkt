@@ -9,7 +9,7 @@
 ; подключаем функции для работы со строками
 (require scheme/string)
 (require racket/format)
-
+(require racket/set)
 
 (define keywords_structure
  '#(
@@ -79,8 +79,16 @@
  (filter non-empty-string? (string-split str #px"\\s*\\b\\s*"))
  )
 
+;множество пунктуационных знаков
+(define punct (set "," ";" ":" "." "!" "?"))
+
+;функция, преобразующая список в строку 
 (define (list_to_string lst)
-  (string-join (map ~a lst) " ")
+  (string-append (car lst) (string-join (map (lambda (x)
+                    (if (not(set-member? punct x))
+                        (string-append " " x)
+                        x
+                     )) (cdr lst)) "") )
   )
 
 
@@ -88,7 +96,7 @@
 ; параметр name -- имя пациента
 (define (visit-doctor name)
   (printf "Hello, ~a!\n" name)
-  (printf "what seems to be the trouble?\n")
+  (printf "what seems to be the trouble?")
   (doctor-driver-loop name)
 )
 
@@ -130,7 +138,7 @@
             ((equal?  (list (car user-response)) '("goodbye")) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
              (printf "see you next week\n"))
-            (else (print (list_to_string (reply user-response))) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
+            (else (printf (list_to_string (reply user-response))) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
                   (doctor-driver-loop name)
              )
        )
@@ -146,7 +154,7 @@
             ((equal? (list (car user-response)) '("goodbye")) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
              (printf "see you next week\n"))
-            (else (print (list_to_string (reply-v2 user-response struct_strat answer-vctr))) ; иначе Доктор генерирует ответ, печатает его 
+            (else (printf (list_to_string (reply-v2 user-response struct_strat answer-vctr))) ; иначе Доктор генерирует ответ, печатает его 
                   (loop (vector-append (vector user-response) answer-vctr)); Доктор продолжает цикл
              )  
       )
