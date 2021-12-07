@@ -75,7 +75,7 @@
 ;функция обработки ввода
 ;\b - конец слова
 ;\s - символ, в том числе пробел 
-(define (strint_to_list str)
+(define (string_to_list str)
  (filter non-empty-string? (string-split str #px"\\s*\\b\\s*"))
  )
 
@@ -105,7 +105,7 @@
   (printf "next!\n")
   (printf "who are you?\n")
   (print '**)
-  (car (strint_to_list (read-line)))
+  (car (string_to_list (read-line)))
  ) 
 )
 
@@ -133,7 +133,7 @@
 (define (doctor-driver-loop name)
     (newline)
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
-    (let ((user-response (strint_to_list (read-line))))
+    (let ((user-response (string_to_list (read-line))))
       (cond
             ((equal?  (list (car user-response)) '("goodbye")) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
@@ -149,7 +149,7 @@
   (let loop (( answer-vctr #() ))
     (newline)
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
-    (let ((user-response (strint_to_list (read-line))))
+    (let ((user-response (string_to_list (read-line))))
       (cond
             ((equal? (list (car user-response)) '("goodbye")) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
