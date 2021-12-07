@@ -72,6 +72,9 @@
         (list  (lambda (x y) (check-for-keywords x)) 4 (lambda (x y) (find_key_answer x)))) 
   )
 
+;размер окна 
+(define N 3)
+
 ;функция обработки ввода
 ;\b - конец слова
 ;\s - символ, в том числе пробел 
@@ -81,6 +84,71 @@
 
 ;множество пунктуационных знаков
 (define punct (set "," ";" ":" "." "!" "?"))
+(define end_punct (set "." "!" "?"))
+
+;файл, где лежит текст 
+(define file_1 "/Users/tanya/Desktop/MSU/4 курс/fp/test_1.txt")
+;файл, куда писать резултат
+(define file "/Users/tanya/Desktop/MSU/4 курс/fp/test.txt")
+
+(define (res_to_file file_1)
+(with-output-to-file file_1
+ (lambda () (print (text_to_sentence (text_from_file file)))
+    )
+ )
+)
+(define (text_from_file file)
+  (call-with-input-file file
+    (lambda (in) (read-line in))
+   )
+ )
+
+;задаем хэш-таблицу
+(define ht_res ( make-hash ))
+
+;функция разделения текста на предложения 
+(define (text_to_sentence text)
+  (let split_text ((text_lst (string_to_list text)) (res '()))
+    (if (null? text_lst) (split_sentence text_lst)
+        (cond ((not(set-member? end_punct (car text_lst)))
+               (split_text (cdr text_lst) (cons (car text_lst) res ))
+               )
+              (else
+               (begin
+               (split_sentence (reverse(cons (car text_lst) res )))
+               (split_text (cdr text_lst) '())
+              )
+            )
+         )
+       )
+     )
+  )
+
+;добавление данных в хэш-таблицу 
+(define (split_sentence lst)
+  (let split ((sent_lst lst) (it_first 0) (it 0) (res '()))
+    (cond ((>= (+ it it_first) (length sent_lst))
+             ht_res
+             )
+            ((= it (- N 1))
+                (let ((word (list-ref sent_lst (+ it_first it))) (ht (hash-ref ht_res (reverse res) #f)))
+                   (if ht
+                       (if (hash-ref ht word #f)
+                            (hash-set! ht word (+ (hash-ref ht word #f) 1))
+                            (hash-set! ht word 1)
+                        )
+                        (hash-set! ht_res (reverse res) (make-hash (list (cons word 1))))
+                     )
+                  )
+                   (split lst (+ it_first 1) 0 '())
+            ) 
+          (else     
+             (split lst it_first (+ it 1) (cons (list-ref sent_lst (+ it_first it)) res))
+          )
+    )
+  )
+ )
+
 
 ;функция, преобразующая список в строку 
 (define (list_to_string lst)
