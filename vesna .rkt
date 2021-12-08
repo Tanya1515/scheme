@@ -87,13 +87,14 @@
 (define end_punct (set "." "!" "?"))
 
 ;файл, где лежит текст 
-(define file_1 "/Users/tanya/Desktop/MSU/4 курс/fp/test_1.txt")
+(define file_f "/Users/tanya/Desktop/MSU/4 курс/fp/test_forward.txt")
+(define file_b "/Users/tanya/Desktop/MSU/4 курс/fp/test_back.txt")
 ;файл, куда писать резултат
 (define file "/Users/tanya/Desktop/MSU/4 курс/fp/test.txt")
 
-(define (res_to_file file_1)
+(define (res_to_file file_1 ht)
 (with-output-to-file file_1
- (lambda () (print (text_to_sentence (text_from_file file)))
+ (lambda () (print ht)
     )
  )
 )
@@ -103,19 +104,24 @@
    )
  )
 
-;задаем хэш-таблицу
-(define ht_res ( make-hash ))
+;задаем хэш-таблицы
+(define ht_res_forward ( make-hash ))
+(define ht_res_back ( make-hash ))
+(define ht_start ( make-hash ))
+
 
 ;функция разделения текста на предложения 
 (define (text_to_sentence text)
   (let split_text ((text_lst (string_to_list text)) (res '()))
-    (if (null? text_lst) (split_sentence text_lst)
+    (if (null? text_lst) null
         (cond ((not(set-member? end_punct (car text_lst)))
-               (split_text (cdr text_lst) (cons (car text_lst) res ))
+               (split_text (cdr text_lst) (cons (car text_lst) res ) )
                )
               (else
                (begin
-               (split_sentence (reverse(cons (car text_lst) res )))
+               (split_sentence (reverse(cons (car text_lst) res)) 0 1 ht_res_forward 0) 
+               (split_sentence (reverse(cons (car text_lst) res)) 1 0 ht_res_back 0)
+               (split_sentence (reverse(cons (car text_lst) res)) 0 1 ht_start 1)
                (split_text (cdr text_lst) '())
               )
             )
@@ -124,14 +130,14 @@
      )
   )
 
-;добавление данных в хэш-таблицу 
-(define (split_sentence lst)
-  (let split ((sent_lst lst) (it_first 0) (it 0) (res '()))
-    (cond ((>= (+ it it_first) (length sent_lst))
+;добавление данных в хэш-таблицу для прямого, смешанного обходов и для начал предложений
+(define (split_sentence lst it_start const ht_res start)
+  (let split ((it_first 0) (it it_start) (res '()))
+    (cond ((>= (+ it it_first) (length lst))
              ht_res
-             )
-            ((= it (- N 1))
-                (let ((word (list-ref sent_lst (+ it_first it))) (ht (hash-ref ht_res (reverse res) #f)))
+            )
+            ((= it (- N const))
+                (let ((word (list-ref lst (+ it_first (* it const)))) (ht (hash-ref ht_res (reverse res) #f)))
                    (if ht
                        (if (hash-ref ht word #f)
                             (hash-set! ht word (+ (hash-ref ht word #f) 1))
@@ -140,15 +146,17 @@
                         (hash-set! ht_res (reverse res) (make-hash (list (cons word 1))))
                      )
                   )
-                   (split lst (+ it_first 1) 0 '())
+                   (split (+ it_first 1) it_start '())
             ) 
-          (else     
-             (split lst it_first (+ it 1) (cons (list-ref sent_lst (+ it_first it)) res))
+          (else
+            (if (and ( = start 1) (>= it_first 1))
+             (print start)
+             (split it_first (+ it 1) (cons (list-ref lst (+ it_first it)) res))
+            )
           )
-    )
+   )
   )
- )
-
+)
 
 ;функция, преобразующая список в строку 
 (define (list_to_string lst)
