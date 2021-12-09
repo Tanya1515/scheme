@@ -1,7 +1,8 @@
 #lang scheme/base
-(require scheme/string)
+(require racket/string)
 (require racket/format)
 (require racket/set)
+(require racket/vector)
 
 ;размер окна + 1
 (define N 3)
@@ -19,25 +20,60 @@
 ;файл, куда писать резултат
 (define file "/Users/tanya/Desktop/MSU/4 курс/fp/test.txt")
 
-;записываем хэш-таблицу в файл 
-(define (res_to_file file_1 ht)
-(with-output-to-file file_1
- (lambda () (print ht)
-    )
- )
+;записываем хэш-таблицы в файл 
+(define (res_to_file)
+(define out_s (open-output-file file_s #:exists 'replace))
+  (write ht_res_start out_s)
+(close-output-port out_s)
+
+(define out_f (open-output-file file_f #:exists 'replace))
+  (write ht_res_forward out_f)
+(close-output-port out_f)
+
+(define out_b (open-output-file file_b #:exists 'replace))
+  (write ht_res_back out_b)
+(close-output-port out_b)
 )
 
-;считываем хэш-таблицу из файла (пока криво)
-(define (text_from_file file)
+;считываем хэш-таблицы из файла 
+(define (read_from_hash-start)
+  (define in (open-input-file file_s))
+  (define tmp_read (make-hash))
+  (set! tmp_read (read in))
+  (map (lambda(x)(hash-set! ht_res_start x (hash-ref tmp_read x))) (hash-keys tmp_read))
+  (close-input-port in)
+)
+
+;считываем хэш-таблицы из файла 
+(define (read_from_hash-forward)
+  (define in (open-input-file file_f))
+  (define tmp_read (make-hash))
+  (set! tmp_read (read in))
+  (map (lambda(x)(hash-set! ht_res_forward x (hash-ref tmp_read x))) (hash-keys tmp_read))
+  (close-input-port in)
+)
+
+;считываем хэш-таблицы из файла 
+(define (read_from_hash-back)
+  (define in (open-input-file file_b))
+  (define tmp_read (make-hash))
+  (set! tmp_read (read in))
+  (map (lambda(x)(hash-set! ht_res_back x (hash-ref tmp_read x))) (hash-keys tmp_read))
+  (close-input-port in)
+)
+
+;считываем текст из файла
+(define (text_from_file)
   (call-with-input-file file
     (lambda (in) (read-line in))
    )
- )
+  )
 
 ;задаем хэш-таблицы
 (define ht_res_forward ( make-hash ))
 (define ht_res_back ( make-hash ))
-(define ht_start ( make-hash ))
+(define ht_res_start ( make-hash ))
+
 
 
 (define (string_to_list str)
@@ -47,32 +83,10 @@
 (define (list_to_string lst)
   (string-append (car lst) (string-join (map (lambda (x)
                     (if (not(set-member? punct x))
-                        (string-append " " )
+                        (string-append " " x)
                         x
                      )) (cdr lst)) "") )
   )
-
-;делим входиной текст на предложения 
-(define (text_to_sentence text)
-  (let split_text ((text_lst (string_to_list text)) (res '()))
-    (if (null? text_lst) null
-        (cond ((not(set-member? end_punct (car text_lst)))
-               (split_text (cdr text_lst) (cons (car text_lst) res ) )
-               )
-              (else
-               (begin
-               (split_sentence (reverse(cons (car text_lst) res)) 0 1 ht_res_forward 0) 
-               (split_sentence (reverse(cons (car text_lst) res)) 1 0 ht_res_back 0)
-               (split_sentence (reverse(cons (car text_lst) res)) 0 1 ht_start 1)
-               (split_text (cdr text_lst) '())
-              )
-            )
-         )
-       )
-     )
-  )
-
-;парсинг каждого предложения
 
 ;Nowadays data analysis has become main advantage in all companies.
 ;Nowadays it = 1 (it_first 0)
@@ -83,7 +97,7 @@
 (define (split_sentence lst it_start const ht_res start)
   (let split ((it_first 0) (it it_start) (res '()))
     (cond ((>= (+ it it_first) (length lst))
-             ht_res
+             null
             )
             ((= it (- N const))
                 (let ((word (list-ref lst (+ it_first (* it const)))) (ht (hash-ref ht_res (reverse res) #f)))
@@ -105,13 +119,80 @@
             ) 
           (else
             (if (and ( = start 1) (>= it_first 1))
-             (print start)
+             null
              (split it_first (+ it 1) (cons (list-ref lst (+ it_first it)) res))
             )
           )
    )
   )
 )
+
+;делим входиной текст на предложения
+;добавить считаывание из файла 
+(define (text_to_sentence text)
+  (let split_text ((text_lst (string_to_list text)) (res '()))
+    (if (null? text_lst) null
+        (cond ((not(set-member? end_punct (car text_lst)))
+               (split_text (cdr text_lst) (cons (car text_lst) res ) )
+               )
+              (else
+               (begin
+               (split_sentence (reverse(cons (car text_lst) res)) 0 1 ht_res_forward 0) 
+               (split_sentence (reverse(cons (car text_lst) res)) 1 0 ht_res_back 0)
+               (split_sentence (reverse(cons (car text_lst) res)) 0 1 ht_res_start 1)
+               (split_text (cdr text_lst) '())
+              )
+            )
+         )
+       )
+     )
+  ) 
+   
+;(foldl + 1 (hash-values ht_res_start))
+(define (select_begining ht)
+  (let find ( (list_keys (hash-keys ht)) (num (random 1 (foldl + 1 (hash-values ht))) )) 
+    (if (null? list_keys) null
+        (if (<= num (hash-ref ht (car list_keys) #f))
+            (car list_keys)
+            (find (cdr list_keys) (- num (hash-ref ht (car list_keys) #f)))
+         )
+    )
+   )
+)
+
+
+;смешанное составление предложения 
+;(define (make-answer-mix file_start file_forward file_back)
+   ;(res_from_file file_start file_forward file_back)
+  
+  ;) 
+
+;выбираем с учетом веса начало предложения -> ищем в структуре начало предложения -> с учетом веса выбираем слово для продолжения -> 
+;прямое составление предложения
+
+(define (make-answer-forward )
+  ;(res_from_file file_start file_forward file_back)
+  (text_to_sentence (text_from_file))
+  (let make_answer ((part_phrase (select_begining ht_res_start)) (all_phrase '()))
+    (if (null? all_phrase)
+     (set! all_phrase  (cons (list_to_string (reverse part_phrase)) all_phrase))
+     null)
+    (let ((next (select_begining (hash-ref ht_res_forward part_phrase #f))))
+     (cond ( (set-member? end_punct next)
+            (cons next all_phrase)
+            )
+           (else
+            (begin
+            (make_answer (reverse(cons next (cdr part_phrase))) (cons next all_phrase))
+            )
+           )
+       )
+   )
+ )
+)
+;парсинг каждого предложения
+
+
 
 
 

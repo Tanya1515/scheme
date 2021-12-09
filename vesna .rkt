@@ -82,6 +82,26 @@
  (filter non-empty-string? (string-split str #px"\\s*\\b\\s*"))
  )
 
+;создаем хэш-таблицы
+(define ht_res_forward ( make-hash ))
+(define ht_res_back ( make-hash ))
+(define ht_res_start ( make-hash ))
+
+;считываем хэш-таблицы из файла 
+(define (res_from_file )
+  (define in_start (open-input-file file_s))
+  (set! ht_res_start (read in_start))
+  (close-input-port in_start)
+  
+  (define in_for (open-input-file file_f))
+  (set! ht_res_forward (read in_for))
+  (close-input-port in_for)
+  
+  (define in (open-input-file file_b))
+  (set! ht_res_back (read in))
+  (close-input-port in)
+ )
+
 ;множество пунктуационных знаков
 (define punct (set "," ";" ":" "." "!" "?"))
 (define end_punct (set "." "!" "?"))
