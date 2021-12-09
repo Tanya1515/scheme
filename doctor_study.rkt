@@ -88,16 +88,17 @@
             ((= it (- N const))
                 (let ((word (list-ref lst (+ it_first (* it const)))) (ht (hash-ref ht_res (reverse res) #f)))
                    (if ht
-                       (if start
-                           (+ ht 1)
+                       (if (= start 1)
+                           (hash-set! ht_res (reverse res) (+ ht 1))
                         (if (hash-ref ht word #f)
                             (hash-set! ht word (+ (hash-ref ht word #f) 1))
                             (hash-set! ht word 1)
                         )
                        )
-                        (hash-set! ht_res (reverse res) (if start
-                                                            1
-                                                            (make-hash (list (cons word 1)))))
+                       (if (= start 1)
+                           (hash-set! ht_res (reverse res) 1)
+                           (hash-set! ht_res (reverse res) (make-hash (list (cons word 1))))
+                           )
                      )
                   )
                    (split (+ it_first 1) it_start '())
