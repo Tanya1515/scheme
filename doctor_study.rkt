@@ -97,7 +97,18 @@
 (define (split_sentence lst it_start const ht_res start)
   (let split ((it_first 0) (it it_start) (res '()))
     (cond ((>= (+ it it_first) (length lst))
-             null
+             (if (= it_start 1)
+                  (let ((word (list-ref lst it_first)) (ht (hash-ref ht_res (reverse res) #f)))
+                    (if ht
+                        (if (hash-ref ht word #f)
+                             (hash-set! ht word (+ (hash-ref ht word #f) 1))
+                             (hash-set! ht word 1)
+                             )
+                         (hash-set! ht_res (reverse res) (make-hash (list (cons word 1))))
+                      )
+                   )
+                  null
+              )
             )
             ((= it (- N const))
                 (let ((word (list-ref lst (+ it_first (* it const)))) (ht (hash-ref ht_res (reverse res) #f)))
@@ -127,6 +138,8 @@
   )
 )
 
+
+
 ;делим входиной текст на предложения
 ;добавить считаывание из файла 
 (define (text_to_sentence text)
@@ -149,7 +162,7 @@
   ) 
    
 ;(foldl + 1 (hash-values ht_res_start))
-(define (select_begining ht)
+(define (select ht)
   (let find ( (list_keys (hash-keys ht)) (num (random 1 (foldl + 1 (hash-values ht))) )) 
     (if (null? list_keys) null
         (if (<= num (hash-ref ht (car list_keys) #f))
@@ -160,36 +173,41 @@
    )
 )
 
-
 ;смешанное составление предложения 
 ;(define (make-answer-mix file_start file_forward file_back)
    ;(res_from_file file_start file_forward file_back)
   
-  ;) 
+; ) 
 
-;выбираем с учетом веса начало предложения -> ищем в структуре начало предложения -> с учетом веса выбираем слово для продолжения -> 
-;прямое составление предложения
-
-(define (make-answer-forward )
+;дописать 
+(define (make-answer-back first)
   ;(res_from_file file_start file_forward file_back)
   (text_to_sentence (text_from_file))
-  (let make_answer ((part_phrase (select_begining ht_res_start)) (all_phrase '()))
-    (if (null? all_phrase)
-     (set! all_phrase  (cons (list_to_string (reverse part_phrase)) all_phrase))
-     null)
-    (let ((next (select_begining (hash-ref ht_res_forward part_phrase #f))))
-     (cond ( (set-member? end_punct next)
-            (cons next all_phrase)
-            )
-           (else
-            (begin
-            (make_answer (reverse(cons next (cdr part_phrase))) (cons next all_phrase))
-            )
-           )
+  (let make_answer ((part_phrase first) (all_phrase (reverse first)))
+    (let ((next (select (hash-ref ht_res_back part_phrase))))
+     (if (hash-ref ht_res_start next)
+            (reverse (cons next all_phrase))
+            (make_answer (cons part_phrase (list next) ) (cons next all_phrase))
        )
    )
  )
 )
+
+;выбираем с учетом веса начало предложения -> ищем в структуре начало предложения -> с учетом веса выбираем слово для продолжения -> 
+;прямое составление предложения
+
+(define (make-answer-forward first)
+  ;(res_from_file file_start file_forward file_back)
+  (text_to_sentence (text_from_file))
+  (let make_answer ((part_phrase first) (all_phrase (reverse first)))
+    (let ((next (select (hash-ref ht_res_forward part_phrase))))
+     (if (set-member? end_punct next)
+            (reverse (cons next all_phrase))
+            (make_answer (append (cdr part_phrase) (list next) ) (cons next all_phrase))
+            )
+           )
+       )
+   )
 ;парсинг каждого предложения
 
 
