@@ -35,32 +35,7 @@
 (close-output-port out_b)
 )
 
-;считываем хэш-таблицы из файла 
-(define (read_from_hash-start)
-  (define in (open-input-file file_s))
-  (define tmp_read (make-hash))
-  (set! tmp_read (read in))
-  (map (lambda(x)(hash-set! ht_res_start x (hash-ref tmp_read x))) (hash-keys tmp_read))
-  (close-input-port in)
-)
 
-;считываем хэш-таблицы из файла 
-(define (read_from_hash-forward)
-  (define in (open-input-file file_f))
-  (define tmp_read (make-hash))
-  (set! tmp_read (read in))
-  (map (lambda(x)(hash-set! ht_res_forward x (hash-ref tmp_read x))) (hash-keys tmp_read))
-  (close-input-port in)
-)
-
-;считываем хэш-таблицы из файла 
-(define (read_from_hash-back)
-  (define in (open-input-file file_b))
-  (define tmp_read (make-hash))
-  (set! tmp_read (read in))
-  (map (lambda(x)(hash-set! ht_res_back x (hash-ref tmp_read x))) (hash-keys tmp_read))
-  (close-input-port in)
-)
 
 ;считываем текст из файла
 (define (text_from_file)
@@ -174,22 +149,25 @@
 )
 
 ;смешанное составление предложения 
-;(define (make-answer-mix file_start file_forward file_back)
+(define (make-answer-mix part_user_response)
    ;(res_from_file file_start file_forward file_back)
+   (text_to_sentence (text_from_file))
+   (append (make-answer-back part_user_response) (make-answer-forward part_user_response) )
   
-; ) 
+ ) 
 
-;дописать 
+;(make-answer-back '("very" "quickly"))
 (define (make-answer-back first)
   ;(res_from_file file_start file_forward file_back)
-  (text_to_sentence (text_from_file))
-  (let make_answer ((part_phrase first) (all_phrase (reverse first)))
+  (let make_answer ((part_phrase first) (all_phrase '()))
     (let ((next (select (hash-ref ht_res_back part_phrase))))
-     (if (hash-ref ht_res_start next)
-            (reverse (cons next all_phrase))
-            (make_answer (cons part_phrase (list next) ) (cons next all_phrase))
+      (let ((part_phrase_next (cons next (reverse (cdr (reverse part_phrase))))))
+     (if (hash-ref ht_res_start part_phrase_next #f)
+            (cons next all_phrase)
+            (make_answer part_phrase_next (cons next all_phrase))
        )
    )
+  )    
  )
 )
 
@@ -198,7 +176,6 @@
 
 (define (make-answer-forward first)
   ;(res_from_file file_start file_forward file_back)
-  (text_to_sentence (text_from_file))
   (let make_answer ((part_phrase first) (all_phrase (reverse first)))
     (let ((next (select (hash-ref ht_res_forward part_phrase))))
      (if (set-member? end_punct next)
