@@ -35,7 +35,32 @@
 (close-output-port out_b)
 )
 
+;считываем хэш-таблицу с всеми вариантами начала предложений из файла 
+(define (read_from_hash-start)
+  (define in (open-input-file file_s))
+  (define tmp_read (make-hash))
+  (set! tmp_read (read in))
+  (map (lambda(x)(hash-set! ht_res_start x (hash-ref tmp_read x))) (hash-keys tmp_read))
+  (close-input-port in)
+)
 
+;считываем хэш-таблицу из файла для сбора предложения прямым способом
+(define (read_from_hash-forward)
+  (define in (open-input-file file_f))
+  (define tmp_read (make-hash))
+  (set! tmp_read (read in))
+  (map (lambda(x)(hash-set! ht_res_forward x (hash-ref tmp_read x))) (hash-keys tmp_read))
+  (close-input-port in)
+)
+
+;считываем хэш-таблицу из файла для сбора предложения обратным способом 
+(define (read_from_hash-back)
+  (define in (open-input-file file_b))
+  (define tmp_read (make-hash))
+  (set! tmp_read (read in))
+  (map (lambda(x)(hash-set! ht_res_back x (hash-ref tmp_read x))) (hash-keys tmp_read))
+  (close-input-port in)
+)
 
 ;считываем текст из файла
 (define (text_from_file)
@@ -55,13 +80,6 @@
  (filter non-empty-string? (string-split str #px"\\s*\\b\\s*"))
  )
 
-(define (list_to_string lst)
-  (string-append (car lst) (string-join (map (lambda (x)
-                    (if (not(set-member? punct x))
-                        (string-append " " x)
-                        x
-                     )) (cdr lst)) "") )
-  )
 
 ;Nowadays data analysis has become main advantage in all companies.
 ;Nowadays it = 1 (it_first 0)
@@ -136,56 +154,16 @@
      )
   ) 
    
-;(foldl + 1 (hash-values ht_res_start))
-(define (select ht)
-  (let find ( (list_keys (hash-keys ht)) (num (random 1 (foldl + 1 (hash-values ht))) )) 
-    (if (null? list_keys) null
-        (if (<= num (hash-ref ht (car list_keys) #f))
-            (car list_keys)
-            (find (cdr list_keys) (- num (hash-ref ht (car list_keys) #f)))
-         )
-    )
-   )
-)
+(define (main)
+  ;(read_from_hash-start) раскомментировать, если уже существует некоторый результат обучения 
+  ;(read_from_hash-back)
+  ;(read_from_hash-forward)
+  (text_to_sentence (text_from_file)) ;обучились
+  (res_to_file) ;записали результат в файл 
+  )
 
-;смешанное составление предложения 
-(define (make-answer-mix part_user_response)
-   ;(res_from_file file_start file_forward file_back)
-   (text_to_sentence (text_from_file))
-   (append (make-answer-back part_user_response) (make-answer-forward part_user_response) )
-  
- ) 
 
-;(make-answer-back '("very" "quickly"))
-(define (make-answer-back first)
-  ;(res_from_file file_start file_forward file_back)
-  (let make_answer ((part_phrase first) (all_phrase '()))
-    (let ((next (select (hash-ref ht_res_back part_phrase))))
-      (let ((part_phrase_next (cons next (reverse (cdr (reverse part_phrase))))))
-     (if (hash-ref ht_res_start part_phrase_next #f)
-            (cons next all_phrase)
-            (make_answer part_phrase_next (cons next all_phrase))
-       )
-   )
-  )    
- )
-)
 
-;выбираем с учетом веса начало предложения -> ищем в структуре начало предложения -> с учетом веса выбираем слово для продолжения -> 
-;прямое составление предложения
-
-(define (make-answer-forward first)
-  ;(res_from_file file_start file_forward file_back)
-  (let make_answer ((part_phrase first) (all_phrase (reverse first)))
-    (let ((next (select (hash-ref ht_res_forward part_phrase))))
-     (if (set-member? end_punct next)
-            (reverse (cons next all_phrase))
-            (make_answer (append (cdr part_phrase) (list next) ) (cons next all_phrase))
-            )
-           )
-       )
-   )
-;парсинг каждого предложения
 
 
 

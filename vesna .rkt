@@ -69,7 +69,8 @@
   (list (list  (lambda (x y) #t) 1 (lambda(x y)(hedge)))
         (list  (lambda (x y) #t) 2 (lambda(x y)(qualifier-answer x)))
         (list  (lambda (x y) (not(vector-empty? y))) 3 (lambda (x y) (history-answer y)))
-        (list  (lambda (x y) (check-for-keywords x)) 4 (lambda (x y) (find_key_answer x)))) 
+        (list  (lambda (x y) (check-for-keywords x)) 4 (lambda (x y) (find_key_answer x))))
+        (list (lambda (x y) #t) 5 (lambda(x y) (make-answer-forward (select ht_res_start))) )
   )
 
 ;размер окна 
@@ -82,25 +83,41 @@
  (filter non-empty-string? (string-split str #px"\\s*\\b\\s*"))
  )
 
+;считываем хэш-таблицу с всеми вариантами начала предложений из файла 
+(define (read_from_hash-start)
+  (define in (open-input-file file_s))
+  (define tmp_read (make-hash))
+  (set! tmp_read (read in))
+  (map (lambda(x)(hash-set! ht_res_start x (hash-ref tmp_read x))) (hash-keys tmp_read))
+  (close-input-port in)
+)
+
+;считываем хэш-таблицу из файла для сбора предложения прямым способом
+(define (read_from_hash-forward)
+  (define in (open-input-file file_f))
+  (define tmp_read (make-hash))
+  (set! tmp_read (read in))
+  (map (lambda(x)(hash-set! ht_res_forward x (hash-ref tmp_read x))) (hash-keys tmp_read))
+  (close-input-port in)
+)
+
+;считываем хэш-таблицу из файла для сбора предложения обратным способом 
+(define (read_from_hash-back)
+  (define in (open-input-file file_b))
+  (define tmp_read (make-hash))
+  (set! tmp_read (read in))
+  (map (lambda(x)(hash-set! ht_res_back x (hash-ref tmp_read x))) (hash-keys tmp_read))
+  (close-input-port in)
+)
+
 ;создаем хэш-таблицы
 (define ht_res_forward ( make-hash ))
 (define ht_res_back ( make-hash ))
 (define ht_res_start ( make-hash ))
 
-;считываем хэш-таблицы из файла 
-(define (res_from_file )
-  (define in_start (open-input-file file_s))
-  (set! ht_res_start (read in_start))
-  (close-input-port in_start)
-  
-  (define in_for (open-input-file file_f))
-  (set! ht_res_forward (read in_for))
-  (close-input-port in_for)
-  
-  (define in (open-input-file file_b))
-  (set! ht_res_back (read in))
-  (close-input-port in)
- )
+(read_from_hash-back)
+(read_from_hash-forward)
+(read_from_hash-start)
 
 ;множество пунктуационных знаков
 (define punct (set "," ";" ":" "." "!" "?"))
@@ -188,7 +205,7 @@
 )
 
 (define (reply-v3 user-response answer-vctr)
-      (case (random 4)  
+      (case (random 6)  
           ((0) (qualifier-answer user-response)) ; 1й способ
           ((1) (hedge)) ; 2й способ
           ((2)((if (vector-empty? answer-vctr)
@@ -197,7 +214,13 @@
                )) ;3й способ
           ((3) (if (check-for-keywords user-response)
                    (find_key_answer user-response)
-                   hedge) )) ;4й способ 
+                   hedge) )) ;4й способ
+          ((4) (cond ((hash-empty? ht_res_start)
+                     (read_from_hash-start)
+                     (make-answer-forward (select ht_res_start)))
+                     (else
+                      (make-answer-forward (select ht_res_start)))
+                     ) ;5й способ
 )
 
 ; генерация ответной реплики по user-response -- реплике от пользователя
@@ -379,3 +402,47 @@
    (change_answer (random-elem-lst (all_inf_by_key word keywords_structure) ) word)
    )
 )
+
+;выбор следующего элемента или начала предложения
+(define (select ht)
+  (let find ( (list_keys (hash-keys ht)) (num (random 1 (foldl + 1 (hash-values ht))) )) 
+    (if (null? list_keys) null
+        (if (<= num (hash-ref ht (car list_keys) #f))
+            (car list_keys)
+            (find (cdr list_keys) (- num (hash-ref ht (car list_keys) #f)))
+         )
+    )
+   )
+)
+
+;составление предложения прямым способом
+(define (make-answer-forward first)
+  (let make_answer ((part_phrase first) (all_phrase (reverse first)))
+    (let ((next (select (hash-ref ht_res_forward part_phrase))))
+     (if (set-member? end_punct next)
+            (reverse (cons next all_phrase))
+            (make_answer (append (cdr part_phrase) (list next) ) (cons next all_phrase))
+            )
+           )
+       )
+   )
+
+;составление предложения обратным способом
+(define (make-answer-back first)
+  (let make_answer ((part_phrase first) (all_phrase '()))
+    (let ((next (select (hash-ref ht_res_back part_phrase))))
+      (let ((part_phrase_next (cons next (reverse (cdr (reverse part_phrase))))))
+     (if (hash-ref ht_res_start part_phrase_next #f)
+            (cons next all_phrase)
+            (make_answer part_phrase_next (cons next all_phrase))
+       )
+   )
+  )    
+ )
+)
+
+;составление предложений обоими способами 
+(define (make-answer-mix part_user_response)
+   (append (make-answer-back part_user_response) (make-answer-forward part_user_response) )
+  
+ ) 
